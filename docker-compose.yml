@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "0.0.0.0:8080:8080"
+    depends_on:
+      - rabbitmq
+      - mongodb
+    entrypoint: ["sh", "-c", "sleep 30 && ./main"]
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "0.0.0.0:8081:8081"
+    depends_on:
+      - rabbitmq
+    entrypoint: ["sh", "-c", "sleep 30 && ./main"]
