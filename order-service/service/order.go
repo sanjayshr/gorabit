@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"runtime"
 	"time"
 
 	"order-service/model"
@@ -42,6 +43,9 @@ func NewOrderService(db *mongo.Database, rabbitMQURL string) *OrderService {
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, order *model.Order) (*model.Order, error) {
+	var memBefore runtime.MemStats
+	runtime.ReadMemStats(&memBefore)
+
 	order.ID = primitive.NewObjectID().Hex()
 
 	_, err := s.collection.InsertOne(ctx, order)
@@ -54,6 +58,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, order *model.Order) (*mo
 	if err != nil {
 		slog.Error("Failed to publish order created event", "error", err)
 	}
+
+	var memAfter runtime.MemStats
+	runtime.ReadMemStats(&memAfter)
+
+	slog.Info("Memory usage for CreateOrder",
+		"alloc_before", memBefore.Alloc,
+		"alloc_after", memAfter.Alloc,
+		"total_alloc_before", memBefore.TotalAlloc,
+		"total_alloc_after", memAfter.TotalAlloc)
 
 	return order, nil
 }

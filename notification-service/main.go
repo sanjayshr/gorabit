@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -74,6 +75,9 @@ func main() {
 	logger.Info("Notification service is running")
 
 	for d := range msgs {
+		var memBefore runtime.MemStats
+		runtime.ReadMemStats(&memBefore)
+
 		var order Order
 		if err := json.Unmarshal(d.Body, &order); err != nil {
 			logger.Error("Failed to unmarshal order", "error", err)
@@ -82,6 +86,15 @@ func main() {
 
 		logger.Info("Received order", "order_id", order.ID, "user_id", order.UserID, "product", order.Product, "quantity", order.Quantity)
 		// Here you would implement the actual notification logic (e.g., sending an email or SMS)
+
+		var memAfter runtime.MemStats
+		runtime.ReadMemStats(&memAfter)
+
+		logger.Info("Memory usage for processing order",
+			"alloc_before", memBefore.Alloc,
+			"alloc_after", memAfter.Alloc,
+			"total_alloc_before", memBefore.TotalAlloc,
+			"total_alloc_after", memAfter.TotalAlloc)
 	}
 
 	logger.Info("Starting notification service on :8081")
